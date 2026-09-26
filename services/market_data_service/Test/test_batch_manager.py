@@ -19,7 +19,7 @@ class TestProvider:
 
 class TestMapper:
 
-    def map_market_data(self, data):
+    def map_market_data(self, data, interval):
         # Provides a controlled mapper for testing BatchManager's batching behavior.
         # In production, this dependency is replaced by YahooMapper.
         return data

@@ -4,7 +4,7 @@ import pandas as pd
 
 class YahooMapper:
 
-    def map_market_data(self, data):
+    def map_market_data(self, data, interval: str):
         # Converts Yahoo Finance DataFrame data into InvestIQ market-data records.
         # data comes from YahooClient in app.providers.yahoo.client.
         # The returned records are passed to the validation layer.
@@ -30,6 +30,7 @@ class YahooMapper:
                         {
                             "symbol": symbol,
                             "datetime": row["Datetime"],
+                            "interval": interval,
                             "open": row["Open"],
                             "high": row["High"],
                             "low": row["Low"],
@@ -50,6 +51,7 @@ class YahooMapper:
                 records.append(
                     {
                         "datetime": row["Datetime"],
+                        "interval": interval,
                         "open": row["Open"],
                         "high": row["High"],
                         "low": row["Low"],

@@ -1,3 +1,4 @@
+
 import pandas as pd
 
 from fastapi import APIRouter
@@ -8,9 +9,14 @@ from services.market_data_service.app.providers.yahoo.client import YahooClient
 from services.market_data_service.app.providers.yahoo.mapper import YahooMapper
 from services.market_data_service.app.processing.market_data_processor import MarketDataProcessor
 from services.market_data_service.app.normalization.market_data_normalizer import MarketDataNormalizer
+from services.market_data_service.app.database.database import SessionLocal
+from services.market_data_service.app.repositories.market_data_repository import (
+    MarketDataRepository,
+)
+
 
 router = APIRouter(
-    prefix="/market-data",2r
+    prefix="/market-data",
     tags=["Market Data"],
 )
 
@@ -69,4 +75,39 @@ def get_market_data(
     processed_data = processor.process(data)
     normalized_data = normalizer.normalize(processed_data)
 
-    return normalized_data.to_dict(orient="records")
+    session = SessionLocal()
+
+    try:
+        repository = MarketDataRepository(session)
+
+        records_to_save = normalized_data.to_dict(
+            orient="records"
+        )
+
+        repository.save_many(records_to_save)
+
+    finally:
+        session.close()
+
+    return normalized_data.to_dict(
+        orient="records"
+    )
+
+# End Point : Fetch
+@router.get("/stored")
+def get_market_data_by_symbol(
+    symbol: str,
+):
+    # Retrieves stored market data for a specific symbol from the database.
+    session = SessionLocal()
+
+    try:
+        repository = MarketDataRepository(session)
+        stored_records = repository.get_by_symbol(
+            symbol=symbol.strip().upper()
+        )
+
+        return stored_records
+
+    finally:
+        session.close()

@@ -23,4 +23,7 @@ class BulkIngestor:
             interval=interval,
         )
 
-        return self.mapper.map_market_data(raw_data)
+        return self.mapper.map_market_data(
+        raw_data,
+        interval,
+        )

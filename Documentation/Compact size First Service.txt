@@ -1,0 +1,494 @@
+# Zenith Project Context
+
+I am building a serious stock analysis/screening platform called **Zenith**.
+
+GitHub:
+`https://github.com/mjubaerUNB3035/Zenith.git`
+
+Current local path:
+`C:\Users\mdjub\Projects\Zenith`
+
+Branch:
+`minor`
+
+I know Python, but when introducing a new technology/concept such as PostgreSQL, SQLAlchemy, Alembic, microservices, queues, APIs, migrations, Docker, etc., explain it as if I have **zero knowledge of that technology**. Explain what it does, why we need it, where it belongs, what changes, and what I should expect before asking me to run commands.
+
+I prefer working **one small step at a time**. If I say "next", continue from the current point. Do not restart or redesign working code.
+
+Before changing an existing file, preferably let me inspect it first.
+
+Use Windows PowerShell and Visual Studio 2022 Community.
+
+Python:
+`3.13.15`
+
+Activate venv:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+Tests:
+
+```powershell
+python -m pytest -v
+```
+
+Alembic must be run as:
+
+```powershell
+python -m alembic
+```
+
+because the `alembic.exe` launcher is blocked on this machine.
+
+---
+
+# Architecture
+
+Zenith is being built as a **microservice/distributed system**, not a monolith.
+
+Planned services:
+
+```text
+API Gateway
+Market Data Service
+Security Service
+Indicator Service
+Screening Service
+Analysis Service
+```
+
+Each service should have its own responsibility and internal implementation.
+
+**Do not directly import another service's internal classes.**
+
+For example, Indicator Service should NOT directly import Market Data Service repositories.
+
+Instead:
+
+```text
+Indicator Service
+      ↓
+Market Data Service API
+      ↓
+Market Data Database
+```
+
+Each service should own its own database/schema when persistent storage is required.
+
+Do not create a root-level shared Alembic system.
+
+Avoid unnecessary files/abstractions. Files should have meaningful responsibilities.
+
+---
+
+# Service Responsibilities
+
+### Market Data Service
+
+Responsible for:
+
+* retrieving market data
+* bulk ingestion
+* processing
+* normalization
+* storage
+* database retrieval
+* market-data API
+
+NOT responsible for:
+
+* stock screening
+* scoring
+* company identity
+* LLM analysis
+* news analysis
+
+### Security Service
+
+Will eventually own security/company identity:
+
+```text
+id
+symbol
+company_name
+exchange
+sector
+industry
+```
+
+However, **do not build Security Service before finishing the current Market Data work unless explicitly requested.**
+
+### Indicator Service
+
+Will calculate technical indicators such as:
+
+* SMA
+* EMA
+* RSI
+* VWAP
+* momentum
+* volatility
+* relative volume
+* buying/selling pressure
+
+### Screening Service
+
+Will apply:
+
+```text
+Basic screening
+→ Advanced screening
+→ Scoring
+```
+
+### Analysis Service
+
+Future service for:
+
+* news
+* YouTube/video information
+* LLM-based analysis
+* reports
+
+---
+
+# Market Data Architecture
+
+Current flow:
+
+```text
+Yahoo/yfinance
+      ↓
+YahooClient
+      ↓
+YahooMapper
+      ↓
+BulkIngestor
+      ↓
+BatchManager
+      ↓
+MarketDataProcessor
+      ↓
+MarketDataNormalizer
+      ↓
+MarketDataRepository
+      ↓
+PostgreSQL
+```
+
+Current provider:
+
+**Yahoo/yfinance**
+
+Alpha Vantage has been dropped. Do not bring it back.
+
+The system needs bulk retrieval because it may eventually process 500+ stocks.
+
+---
+
+# Current Market Data Structure
+
+```text
+services/
+├── api_gateway/
+│   └── app/
+│       └── main.py
+│
+└── market_data_service/
+    ├── alembic.ini
+    ├── alembic/
+    │   ├── env.py
+    │   └── versions/
+    │
+    ├── app/
+    │   ├── main.py
+    │   ├── config.py
+    │   ├── api/routes/market_data.py
+    │   ├── database/database.py
+    │   ├── ingestion/
+    │   │   ├── batch_manager.py
+    │   │   └── bulk_ingestor.py
+    │   ├── providers/yahoo/
+    │   │   ├── client.py
+    │   │   └── mapper.py
+    │   ├── processing/
+    │   │   └── market_data_processor.py
+    │   ├── normalization/
+    │   │   └── market_data_normalizer.py
+    │   ├── models/
+    │   │   └── market_data_model.py
+    │   └── repositories/
+    │       └── market_data_repository.py
+    │
+    └── Test/
+```
+
+---
+
+# Market Data Processing
+
+Current calculated fields:
+
+```text
+price_change
+price_change_percent
+trading_range
+average_volume
+average_price
+relative_volume
+buying_pressure
+selling_pressure
+momentum
+volatility
+```
+
+Processing happens before database storage.
+
+Normalization handles:
+
+* lowercase/clean column names
+* datetime conversion
+* numeric conversion
+* invalid values
+* missing values
+* sorting by symbol/datetime
+
+---
+
+# Database
+
+PostgreSQL 18 is installed.
+
+Database:
+
+```text
+zenith
+```
+
+Application user:
+
+```text
+zenith_app
+```
+
+Database credentials are stored in `.env`.
+
+Never hardcode or expose the password.
+
+SQLAlchemy is used for database access.
+
+Alembic is used for migrations.
+
+Alembic belongs to the Market Data Service:
+
+```text
+services/market_data_service/alembic/
+```
+
+There is no root-level Alembic.
+
+---
+
+# Critical Database Rule
+
+A Market Data record is uniquely identified by:
+
+```text
+symbol + datetime
+```
+
+**NOT:**
+
+```text
+symbol + datetime + interval
+```
+
+Example:
+
+```text
+AAPL + 2026-09-25 10:30
+```
+
+is one record.
+
+If the same symbol/time arrives with another interval, update the existing row rather than creating another row.
+
+`interval` is stored as a normal field and is updated during upsert.
+
+---
+
+# Current Database Table
+
+`market_data` contains:
+
+```text
+id
+symbol
+datetime
+interval
+open
+high
+low
+close
+volume
+
+price_change
+price_change_percent
+trading_range
+average_volume
+average_price
+relative_volume
+buying_pressure
+selling_pressure
+momentum
+volatility
+```
+
+There is a unique constraint on:
+
+```text
+symbol + datetime
+```
+
+The PostgreSQL conflict constraint currently used by the repository is:
+
+```text
+uq_market_data_symbol
+```
+
+---
+
+# Current Repository
+
+`MarketDataRepository` already supports bulk saving/upserting.
+
+Conceptually:
+
+```text
+INSERT record
+    ↓
+symbol + datetime already exists?
+    ↓
+YES → UPDATE existing record
+NO  → INSERT new record
+```
+
+The update includes the market fields, calculated fields, and `interval`.
+
+This has already been tested.
+
+---
+
+# Current API
+
+Market Data endpoint:
+
+```text
+GET /market-data/
+```
+
+Example:
+
+```text
+/market-data/?symbols=AAPL,TSLA&period=1d&interval=1h
+```
+
+Current API successfully performs:
+
+```text
+Yahoo
+→ mapping
+→ processing
+→ normalization
+→ PostgreSQL
+→ response
+```
+
+AAPL and TSLA were successfully stored.
+
+Database contained:
+
+```text
+7 AAPL records
+7 TSLA records
+14 total
+```
+
+Repeating the same request kept the count at:
+
+```text
+14
+```
+
+This verified that duplicate records are not created.
+
+---
+
+# Current Status
+
+Completed:
+
+```text
+Yahoo client                 ✓
+Yahoo mapper                 ✓
+Bulk ingestion               ✓
+Batch manager                ✓
+Processing                   ✓
+Normalization                ✓
+Database configuration       ✓
+SQLAlchemy model             ✓
+Alembic migration            ✓
+PostgreSQL table             ✓
+Repository upsert            ✓
+Ingestion API                ✓
+End-to-end storage           ✓
+Upsert verification          ✓
+```
+
+Remaining Market Data work:
+
+```text
+Database retrieval
+      ↓
+Retrieval API
+      ↓
+Retrieval tests
+      ↓
+Full Market Data test
+```
+
+After that, Market Data Service v1 should be considered complete.
+
+---
+
+# IMMEDIATE NEXT TASK
+
+We are now starting **database retrieval**.
+
+The retrieval logic belongs inside:
+
+```text
+Market Data Service
+```
+
+and the database query should belong in:
+
+```text
+MarketDataRepository
+```
+
+The API should call the repository.
+
+Other services should eventually retrieve Market Data through the Market Data Service API, not directly from PostgreSQL.
+
+Before modifying the repository, inspect the existing file:
+
+```powershell
+Get-Content .\services\market_data_service\app\repositories\market_data_repository.py
+```
+
+Then continue one step at a time.
+
+Do not redesign the existing working architecture.

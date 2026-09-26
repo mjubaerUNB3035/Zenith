@@ -2,7 +2,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>f898d3a9-7d95-4063-ba89-9a50d60d5ecc</ProjectGuid>
+    <ProjectGuid>{1c69a149-f421-44ad-9ac6-f9cd650ec0c9}</ProjectGuid>
     <ProjectHome>.</ProjectHome>
     <StartupFile>
     </StartupFile>
@@ -12,6 +12,7 @@
     <OutputPath>.</OutputPath>
     <Name>InvestIQ</Name>
     <RootNamespace>InvestIQ</RootNamespace>
+    <TestFramework>Pytest</TestFramework>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -22,22 +23,34 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="services\market_data_service\alembic\env.py" />
     <Compile Include="services\market_data_service\app\config.py" />
     <Compile Include="services\api_gateway\app\main.py" />
     <Compile Include="services\market_data_service\app\api\routes\market_data.py" />
+    <Compile Include="services\market_data_service\app\database\database.py" />
+    <Compile Include="services\market_data_service\app\database\__init__.py" />
     <Compile Include="services\market_data_service\app\ingestion\batch_manager.py" />
     <Compile Include="services\market_data_service\app\ingestion\bulk_ingestor.py" />
     <Compile Include="services\market_data_service\app\main.py" />
+    <Compile Include="services\market_data_service\app\models\market_data_model.py" />
+    <Compile Include="services\market_data_service\app\models\__init__.py" />
     <Compile Include="services\market_data_service\app\normalization\market_data_normalizer.py" />
     <Compile Include="services\market_data_service\app\processing\market_data_processor.py" />
     <Compile Include="services\market_data_service\app\providers\yahoo\client.py" />
     <Compile Include="services\market_data_service\app\providers\yahoo\mapper.py" />
+    <Compile Include="services\market_data_service\app\repositories\market_data_repository.py" />
+    <Compile Include="services\market_data_service\app\repositories\__init__.py" />
+    <Compile Include="services\market_data_service\app\__init__.py" />
+    <Compile Include="services\market_data_service\Test\test_market_data_api.py" />
+    <Compile Include="services\market_data_service\Test\test_market_data_repository.py" />
     <Compile Include="services\market_data_service\Test\test_batch_manager.py" />
     <Compile Include="services\market_data_service\Test\test_bulk_ingestor.py" />
     <Compile Include="services\market_data_service\Test\test_config.py" />
+    <Compile Include="services\market_data_service\Test\test_database.py" />
     <Compile Include="services\market_data_service\Test\test_market_data_normalizer.py" />
     <Compile Include="services\market_data_service\Test\test_market_data_processor.py" />
     <Compile Include="services\market_data_service\Test\test_yahoo_client.py" />
+    <Compile Include="services\market_data_service\Test\test_yahoo_mapper.py" />
     <Compile Include="__init__.py" />
   </ItemGroup>
   <ItemGroup>
@@ -45,15 +58,26 @@
     <Folder Include="services\api_gateway\" />
     <Folder Include="services\api_gateway\app\" />
     <Folder Include="services\market_data_service\" />
+    <Folder Include="services\market_data_service\alembic\" />
+    <Folder Include="services\market_data_service\alembic\versions\" />
     <Folder Include="services\market_data_service\app\" />
     <Folder Include="services\market_data_service\app\api\" />
     <Folder Include="services\market_data_service\app\api\routes\" />
     <Folder Include="services\market_data_service\app\ingestion\" />
+    <Folder Include="services\market_data_service\app\database\" />
+    <Folder Include="services\market_data_service\app\models\" />
+    <Folder Include="services\market_data_service\app\repositories\" />
     <Folder Include="services\market_data_service\app\normalization\" />
     <Folder Include="services\market_data_service\app\processing\" />
     <Folder Include="services\market_data_service\app\providers\" />
     <Folder Include="services\market_data_service\app\providers\yahoo\" />
     <Folder Include="services\market_data_service\Test\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="services\market_data_service\alembic.ini" />
+    <Content Include="services\market_data_service\alembic\README" />
+    <Content Include="services\market_data_service\alembic\script.py.mako" />
+    <Content Include="services\market_data_service\Test\test_market_data_model.py" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

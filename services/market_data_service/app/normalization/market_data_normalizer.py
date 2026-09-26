@@ -4,6 +4,7 @@ import pandas as pd
 class MarketDataNormalizer:
 
     def normalize_columns(self, data: pd.DataFrame) -> pd.DataFrame:
+        # Standardize column names.
         data = data.copy()
 
         data.columns = [
@@ -14,6 +15,7 @@ class MarketDataNormalizer:
         return data
 
     def normalize_datetime(self, data: pd.DataFrame) -> pd.DataFrame:
+        # Convert datetime values to pandas datetime.
         data = data.copy()
 
         if "datetime" in data.columns:
@@ -25,6 +27,7 @@ class MarketDataNormalizer:
         return data
 
     def normalize_numeric(self, data: pd.DataFrame) -> pd.DataFrame:
+        # Convert market values to numeric types.
         data = data.copy()
 
         numeric_columns = [
@@ -55,6 +58,7 @@ class MarketDataNormalizer:
         return data
 
     def normalize_invalid_values(self, data: pd.DataFrame) -> pd.DataFrame:
+        # Replace infinite values with missing values.
         data = data.copy()
 
         data = data.replace(
@@ -65,6 +69,7 @@ class MarketDataNormalizer:
         return data
 
     def normalize_missing_values(self, data: pd.DataFrame) -> pd.DataFrame:
+        # Convert pandas missing values to Python None.
         data = data.copy()
 
         data = data.astype(object).where(
@@ -75,6 +80,7 @@ class MarketDataNormalizer:
         return data
 
     def normalize_order(self, data: pd.DataFrame) -> pd.DataFrame:
+        # Sort data by symbol and datetime.
         data = data.copy()
 
         sort_columns = []
@@ -91,6 +97,7 @@ class MarketDataNormalizer:
         return data.reset_index(drop=True)
 
     def normalize(self, data: pd.DataFrame) -> pd.DataFrame:
+        # Run all normalization steps.
         data = self.normalize_columns(data)
         data = self.normalize_datetime(data)
         data = self.normalize_numeric(data)

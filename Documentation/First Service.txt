@@ -1,0 +1,2221 @@
+# Zenith Project
+
+## Microservice Architecture and Market Data Service Handoff
+
+## 1. Purpose of This Document
+
+This document is a handoff/context document for continuing development of the Zenith stock analysis platform in a new ChatGPT conversation.
+
+The next AI should read this document before making architectural or coding decisions.
+
+The goal is to ensure that development continues from the current system instead of restarting, redesigning existing components unnecessarily, or changing architectural decisions that have already been made.
+
+The project is being developed as a serious, scalable stock analysis and screening platform.
+
+The project name is:
+
+**Zenith**
+
+The GitHub repository is:
+
+`https://github.com/mjubaerUNB3035/Zenith.git`
+
+The current development branch is:
+
+`minor`
+
+The local project path is:
+
+`C:\Users\mdjub\Projects\Zenith`
+
+---
+
+# 2. Developer Background and Explanation Style
+
+The developer knows Python reasonably well.
+
+However, when introducing a technology or concept that is new to the developer, explanations must assume zero prior knowledge of that specific technology.
+
+This particularly applies to:
+
+* microservices
+* database architecture
+* PostgreSQL
+* SQLAlchemy
+* Alembic
+* migrations
+* service-to-service communication
+* APIs between services
+* queues
+* events
+* distributed systems
+* Docker
+* deployment infrastructure
+
+When introducing something new:
+
+1. Explain what it is.
+2. Explain why Zenith needs it.
+3. Explain where it belongs in the architecture.
+4. Explain what the code/command will change.
+5. Explain what output/result should be expected.
+6. Only then ask the developer to run the command or make the change.
+
+Do not simply provide commands without explaining them.
+
+The developer prefers working one small step at a time.
+
+If the developer says:
+
+`next`
+
+continue from the current state.
+
+Do not restart the project.
+
+Do not recreate files that already exist.
+
+Do not redesign working components without a clear reason.
+
+The developer prefers inspecting an existing file before changing it.
+
+For example, if a problem involves a repository file, first ask the developer to display that repository file rather than immediately replacing it.
+
+---
+
+# 3. Development Environment
+
+Operating system:
+
+Windows 11
+
+IDE:
+
+Visual Studio 2022 Community
+
+Terminal:
+
+Windows PowerShell
+
+Python environment:
+
+`.venv`
+
+The project currently uses Python 3.13.15.
+
+Activate the environment with:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+Tests should normally be run with:
+
+```powershell
+python -m pytest -v
+```
+
+Do not use:
+
+```powershell
+pytest
+```
+
+unless there is a specific reason.
+
+The `alembic.exe` launcher is blocked by Windows Application Control on this machine.
+
+Therefore use:
+
+```powershell
+python -m alembic
+```
+
+instead of:
+
+```powershell
+alembic
+```
+
+---
+
+# 4. Project Goal
+
+Zenith is intended to become a serious stock analysis and screening platform.
+
+The long-term system should support:
+
+* hundreds of stocks
+* potentially 500+ stocks
+* bulk market-data retrieval
+* historical data
+* intraday data
+* technical indicators
+* multiple screening checkpoints
+* scoring
+* stock universe/security metadata
+* news
+* YouTube/video information
+* future LLM-based analysis
+* background processing
+* distributed processing
+* scalable service-to-service communication
+
+The system should not be designed like a small single-stock application.
+
+Scalability and separation of responsibilities are important.
+
+---
+
+# 5. Major Architecture Decision
+
+Zenith is being developed as a **microservice/distributed system**.
+
+The original application was more monolithic.
+
+The architecture is now being changed so that major business domains become separate services.
+
+The intended high-level architecture is:
+
+```text
+                         ┌─────────────────────┐
+                         │    API Gateway      │
+                         └──────────┬──────────┘
+                                    │
+              ┌─────────────────────┼─────────────────────┐
+              │                     │                     │
+              ▼                     ▼                     ▼
+      Market Data Service    Security Service      Other Services
+              │                     │
+              ▼                     ▼
+       Market Data DB          Security DB
+```
+
+Future major services include:
+
+```text
+API Gateway
+Market Data Service
+Security Service
+Indicator Service
+Screening Service
+Analysis Service
+```
+
+There may eventually be additional infrastructure/services for:
+
+* messaging
+* background jobs
+* caching
+* monitoring
+* distributed processing
+
+But these should not be introduced prematurely.
+
+---
+
+# 6. Microservice Principle
+
+Each service should own its own business logic.
+
+For example:
+
+### Market Data Service
+
+Responsible for market data.
+
+### Security Service
+
+Responsible for identifying securities and maintaining company/security metadata.
+
+### Indicator Service
+
+Responsible for calculating technical indicators.
+
+### Screening Service
+
+Responsible for screening and scoring securities.
+
+### Analysis Service
+
+Responsible for higher-level analysis, including future news, YouTube and LLM functionality.
+
+A service should not directly import another service's internal classes.
+
+For example, this should eventually be avoided:
+
+```python
+from services.market_data_service.app.repositories.market_data_repository import MarketDataRepository
+```
+
+inside the Indicator Service.
+
+Instead, services should communicate through defined interfaces such as:
+
+* HTTP APIs
+* events
+* queues
+* jobs
+* messaging
+* other explicitly designed service contracts
+
+The exact communication mechanism can evolve later.
+
+The important rule is:
+
+**Do not create direct internal dependencies between microservices.**
+
+---
+
+# 7. Service-Owned Database Principle
+
+Each major microservice should own its data.
+
+The Market Data Service owns its market-data database/schema.
+
+The Security Service will eventually own its security metadata.
+
+The Indicator Service may eventually own indicator-related data if persistent storage is needed.
+
+Do not create one giant shared repository layer where every service directly accesses every other service's tables.
+
+The database boundary is part of the microservice architecture.
+
+---
+
+# 8. API Gateway
+
+The API Gateway currently exists at:
+
+```text
+services/api_gateway/app/main.py
+```
+
+Current general purpose:
+
+```text
+Client
+  ↓
+API Gateway
+  ↓
+Appropriate Microservice
+```
+
+The API Gateway should not directly access the Market Data PostgreSQL database.
+
+It should communicate with the Market Data Service.
+
+The API Gateway currently includes the Market Data router during development, but this should be treated as part of the current implementation rather than the final distributed deployment architecture.
+
+Current API Gateway code is approximately:
+
+```python
+from fastapi import FastAPI
+
+from services.market_data_service.app.api.routes.market_data import (
+    router as market_data_router,
+)
+
+app = FastAPI(
+    title="InvestIQ API Gateway",
+    version="1.0.0",
+)
+
+app.include_router(market_data_router)
+```
+
+The title may still need to be changed from `InvestIQ` to `Zenith`.
+
+Do not confuse the old project name with the current project name.
+
+Current project name:
+
+**Zenith**
+
+---
+
+# 9. Planned Microservices
+
+## 9.1 Market Data Service
+
+Purpose:
+
+Collect, process, normalize and store market data.
+
+Current flow:
+
+```text
+Yahoo
+ ↓
+YahooClient
+ ↓
+YahooMapper
+ ↓
+BulkIngestor
+ ↓
+BatchManager
+ ↓
+MarketDataProcessor
+ ↓
+MarketDataNormalizer
+ ↓
+MarketDataRepository
+ ↓
+PostgreSQL
+```
+
+The Market Data Service should also provide retrieval APIs so other services can request stored market data without accessing its database directly.
+
+---
+
+## 9.2 Security Service
+
+Purpose:
+
+Represent the stock/security universe.
+
+A future securities table/service is expected to contain information such as:
+
+```text
+id
+symbol
+company_name
+exchange
+sector
+industry
+```
+
+The Security Service will eventually become the authoritative source for security identity.
+
+However, the current Market Data implementation still uses:
+
+```text
+symbol
+```
+
+as its identifier.
+
+Do not stop Market Data development to build the Security Service.
+
+The decision was explicitly made to finish the Market Data Service first.
+
+The architecture should remain capable of integrating with the Security Service later.
+
+---
+
+## 9.3 Indicator Service
+
+Purpose:
+
+Calculate technical indicators and market-derived metrics.
+
+Potential indicators include:
+
+* SMA
+* EMA
+* RSI
+* VWAP
+* momentum
+* volatility
+* relative volume
+* buying pressure
+* selling pressure
+* other technical indicators
+
+The Indicator Service should eventually consume market data from the Market Data Service rather than directly querying the Market Data database.
+
+---
+
+## 9.4 Screening Service
+
+Purpose:
+
+Apply screening logic.
+
+The intended screening structure is something like:
+
+```text
+Basic screening
+    ↓
+Intermediate screening
+    ↓
+Advanced screening
+    ↓
+Scoring
+```
+
+Screening rules should not be placed inside Market Data Service.
+
+---
+
+## 9.5 Analysis Service
+
+Future purpose:
+
+Higher-level analysis.
+
+Potential inputs:
+
+* market data
+* indicators
+* screening results
+* company information
+* news
+* YouTube/video information
+
+Future functionality may include LLM-based reports and analysis.
+
+This is a later stage.
+
+Do not introduce it prematurely.
+
+---
+
+# 10. Market Data Service Responsibilities
+
+The Market Data Service is responsible for:
+
+1. Obtaining market data from providers.
+2. Bulk ingestion.
+3. Processing raw market data.
+4. Normalizing data.
+5. Persisting data.
+6. Updating existing records when the same market-data identity is received.
+7. Retrieving stored market data.
+8. Exposing market-data APIs.
+
+The Market Data Service is NOT responsible for:
+
+* stock screening rules
+* scoring stocks
+* company intelligence
+* LLM reports
+* news analysis
+* YouTube analysis
+* final investment decisions
+
+Those belong to other services.
+
+---
+
+# 11. Data Provider Decision
+
+Alpha Vantage has been permanently dropped from the architecture.
+
+Do not bring Alpha Vantage back into the design unless explicitly requested.
+
+Reason:
+
+Sequential API calls are not suitable for the desired scale.
+
+Zenith needs bulk retrieval because it may process hundreds of stocks.
+
+Current provider:
+
+**Yahoo / yfinance**
+
+The design should allow additional providers later.
+
+The provider layer is intentionally separated so another provider can eventually be added without redesigning the entire Market Data Service.
+
+---
+
+# 12. Market Data Strategy
+
+There are two broad data tracks.
+
+## Track A: Live/Intra-week
+
+Goal:
+
+Support many stocks, potentially 500+.
+
+Potential intervals:
+
+* 1 minute
+* 5 minutes
+
+Potential retention:
+
+* current trading day
+* approximately one week
+
+The exact production infrastructure is not finalized.
+
+The important design principle is bulk retrieval.
+
+---
+
+## Track B: Historical
+
+Historical data will eventually support:
+
+* approximately 3–6 months
+* daily data
+* weekend/batch processing
+
+The system may eventually use Alpaca or locally stored historical data.
+
+The historical provider is not currently being implemented.
+
+---
+
+# 13. Current Market Data Service Structure
+
+Current general structure:
+
+```text
+services/
+│
+├── api_gateway/
+│   └── app/
+│       └── main.py
+│
+└── market_data_service/
+    │
+    ├── alembic.ini
+    │
+    ├── alembic/
+    │   ├── env.py
+    │   ├── README
+    │   ├── script.py.mako
+    │   └── versions/
+    │
+    ├── app/
+    │   ├── main.py
+    │   ├── config.py
+    │   │
+    │   ├── api/
+    │   │   └── routes/
+    │   │       └── market_data.py
+    │   │
+    │   ├── database/
+    │   │   └── database.py
+    │   │
+    │   ├── ingestion/
+    │   │   ├── batch_manager.py
+    │   │   └── bulk_ingestor.py
+    │   │
+    │   ├── providers/
+    │   │   └── yahoo/
+    │   │       ├── client.py
+    │   │       └── mapper.py
+    │   │
+    │   ├── processing/
+    │   │   └── market_data_processor.py
+    │   │
+    │   ├── normalization/
+    │   │   └── market_data_normalizer.py
+    │   │
+    │   ├── models/
+    │   │   └── market_data_model.py
+    │   │
+    │   └── repositories/
+    │       └── market_data_repository.py
+    │
+    └── Test/
+        ├── test_batch_manager.py
+        ├── test_bulk_ingestor.py
+        ├── test_config.py
+        ├── test_database.py
+        ├── test_market_data_normalizer.py
+        ├── test_market_data_processor.py
+        └── test_yahoo_mapper.py
+```
+
+The exact directory contents may grow, but this is the current conceptual structure.
+
+---
+
+# 14. Yahoo Client
+
+Location:
+
+```text
+services/market_data_service/app/providers/yahoo/client.py
+```
+
+Purpose:
+
+Communicate with Yahoo/yfinance.
+
+The Yahoo client handles provider communication.
+
+It should not contain:
+
+* screening rules
+* database logic
+* API response formatting
+* repository logic
+
+The provider layer is deliberately isolated.
+
+---
+
+# 15. Yahoo Mapper
+
+Location:
+
+```text
+services/market_data_service/app/providers/yahoo/mapper.py
+```
+
+Purpose:
+
+Convert Yahoo/yfinance output into Zenith's internal market-data structure.
+
+The mapper handles both:
+
+* MultiIndex data
+* single-symbol data
+
+The mapped structure includes:
+
+```text
+symbol
+datetime
+interval
+open
+high
+low
+close
+volume
+```
+
+The interval is supplied to the mapper because the provider response itself does not necessarily provide the required normalized interval field.
+
+Conceptually:
+
+```python
+map_market_data(data, interval)
+```
+
+The mapper should be responsible for mapping provider data.
+
+It should not perform database operations.
+
+---
+
+# 16. Bulk Ingestor
+
+Location:
+
+```text
+services/market_data_service/app/ingestion/bulk_ingestor.py
+```
+
+Purpose:
+
+Coordinate provider retrieval and mapping.
+
+Current conceptual implementation:
+
+```python
+class BulkIngestor:
+
+    def __init__(self, provider, mapper):
+        self.provider = provider
+        self.mapper = mapper
+
+    def fetch(self, symbols, period="5d", interval="1h"):
+        if not symbols:
+            raise ValueError("At least one symbol is required.")
+
+        raw_data = self.provider.get_market_data(
+            symbols=symbols,
+            period=period,
+            interval=interval,
+        )
+
+        return self.mapper.map_market_data(
+            raw_data,
+            interval,
+        )
+```
+
+The important responsibility chain is:
+
+```text
+BulkIngestor
+    ↓
+Provider
+    ↓
+raw data
+    ↓
+Mapper
+    ↓
+normalized internal records
+```
+
+---
+
+# 17. Batch Manager
+
+Location:
+
+```text
+services/market_data_service/app/ingestion/batch_manager.py
+```
+
+Purpose:
+
+Split large symbol lists into manageable batches.
+
+Current default batch size:
+
+```text
+100
+```
+
+Conceptually:
+
+```text
+500 symbols
+    ↓
+BatchManager
+    ↓
+100 symbols
+100 symbols
+100 symbols
+100 symbols
+100 symbols
+```
+
+The BatchManager should not know provider-specific implementation details.
+
+It works with the BulkIngestor.
+
+This separation allows the ingestion system to scale without embedding provider logic in the batching code.
+
+Do not modify BatchManager unnecessarily.
+
+It is currently working.
+
+---
+
+# 18. Market Data Processor
+
+Location:
+
+```text
+services/market_data_service/app/processing/market_data_processor.py
+```
+
+Purpose:
+
+Calculate reusable market-derived values before data is stored.
+
+Current calculations include:
+
+### Price
+
+```text
+price_change
+price_change_percent
+trading_range
+```
+
+### Volume
+
+```text
+average_volume
+```
+
+using a 20-period rolling average.
+
+### Average price
+
+```text
+average_price
+```
+
+calculated from OHLC:
+
+```text
+(open + high + low + close) / 4
+```
+
+### Relative volume
+
+```text
+relative_volume
+```
+
+calculated as:
+
+```text
+volume / average_volume
+```
+
+### Buying pressure
+
+Based on the close position inside the high-low range:
+
+```text
+(close - low) / (high - low)
+```
+
+### Selling pressure
+
+```text
+(high - close) / (high - low)
+```
+
+### Momentum
+
+Current implementation uses a 10-period difference:
+
+```text
+close.diff(10)
+```
+
+### Volatility
+
+Current implementation calculates rolling standard deviation of percentage price changes over 20 periods.
+
+The processor sorts data by:
+
+```text
+symbol
+datetime
+```
+
+before calculating these values.
+
+This is important because rolling and difference calculations depend on chronological order.
+
+The processor is intended to calculate market-data-derived values, not screening decisions.
+
+---
+
+# 19. Market Data Normalizer
+
+Location:
+
+```text
+services/market_data_service/app/normalization/market_data_normalizer.py
+```
+
+Purpose:
+
+Make processed data consistent and safe for storage/API output.
+
+Current responsibilities include:
+
+### Column normalization
+
+Columns are:
+
+* stripped
+* converted to lowercase
+
+Example:
+
+```text
+Close
+```
+
+becomes:
+
+```text
+close
+```
+
+### Datetime normalization
+
+Datetime is converted using pandas datetime conversion.
+
+Invalid datetime values become null.
+
+### Numeric normalization
+
+Numeric fields are converted using numeric conversion.
+
+Fields include:
+
+```text
+open
+high
+low
+close
+volume
+price_change
+price_change_percent
+trading_range
+average_volume
+average_price
+relative_volume
+buying_pressure
+selling_pressure
+momentum
+volatility
+```
+
+### Invalid-value handling
+
+Positive and negative infinity are converted to missing values.
+
+### Missing-value handling
+
+Pandas missing values are converted into Python `None` where appropriate.
+
+### Ordering
+
+Final records are sorted by:
+
+```text
+symbol
+datetime
+```
+
+The normalizer does not perform business decisions.
+
+---
+
+# 20. Current Market Data Database
+
+Database:
+
+**PostgreSQL 18**
+
+Current database:
+
+```text
+zenith
+```
+
+Current application user:
+
+```text
+zenith_app
+```
+
+Host:
+
+```text
+localhost
+```
+
+Port:
+
+```text
+5432
+```
+
+The actual password must never be written into documentation, code, responses, or memory.
+
+It is stored in `.env`.
+
+---
+
+# 21. Environment Configuration
+
+The root `.env` contains configuration similar to:
+
+```env
+APP_NAME=Zenith
+APP_ENV=development
+
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=zenith
+DB_USER=zenith_app
+DB_PASSWORD=<secret>
+```
+
+The `.env` file must not be committed to Git.
+
+`.gitignore` includes:
+
+```text
+.env
+```
+
+---
+
+# 22. Database Configuration
+
+Location:
+
+```text
+services/market_data_service/app/database/database.py
+```
+
+The application uses:
+
+* python-dotenv
+* SQLAlchemy
+* psycopg
+
+The database URL is constructed from environment variables.
+
+Conceptually:
+
+```text
+.env
+ ↓
+environment configuration
+ ↓
+SQLAlchemy
+ ↓
+PostgreSQL
+```
+
+The engine uses:
+
+```python
+pool_pre_ping=True
+```
+
+to help detect stale database connections.
+
+`SessionLocal` is used to create database sessions.
+
+The application should not hardcode database credentials.
+
+---
+
+# 23. SQLAlchemy Model
+
+Location:
+
+```text
+services/market_data_service/app/models/market_data_model.py
+```
+
+Current table:
+
+```text
+market_data
+```
+
+The model contains:
+
+```text
+id
+symbol
+datetime
+interval
+open
+high
+low
+close
+volume
+
+price_change
+price_change_percent
+trading_range
+average_volume
+average_price
+relative_volume
+buying_pressure
+selling_pressure
+momentum
+volatility
+```
+
+---
+
+# 24. Critical Database Identity Decision
+
+This is one of the most important architectural decisions.
+
+A market-data record is uniquely identified by:
+
+```text
+symbol + datetime
+```
+
+NOT:
+
+```text
+symbol + datetime + interval
+```
+
+The interval is stored as a field, but it is not part of the unique identity.
+
+Therefore:
+
+```text
+AAPL + 2026-09-25 10:30
+```
+
+represents one record.
+
+If another request provides:
+
+```text
+AAPL + 2026-09-25 10:30 + 5h
+```
+
+the existing record should be updated rather than creating another row.
+
+The interval field should then be updated as part of the upsert.
+
+This decision was explicitly made because the same timestamp may be encountered through different interval requests.
+
+Do not change this identity model unless the developer explicitly changes the requirement.
+
+---
+
+# 25. Database Constraint
+
+The SQLAlchemy model contains a unique constraint on:
+
+```text
+symbol
+datetime
+```
+
+Conceptually:
+
+```python
+UniqueConstraint(
+    "symbol",
+    "datetime",
+    name="uq_market_data_symbol_datetime",
+)
+```
+
+The actual PostgreSQL database currently reports the unique constraint as:
+
+```text
+uq_market_data_symbol
+```
+
+The repository therefore currently uses:
+
+```text
+uq_market_data_symbol
+```
+
+for PostgreSQL conflict handling.
+
+This should be verified against the actual database if migrations are changed.
+
+Do not blindly assume the migration filename or intended constraint name matches the actual database constraint.
+
+---
+
+# 26. Alembic Architecture
+
+Alembic is owned by the Market Data Service.
+
+There is intentionally no root-level shared Alembic configuration.
+
+Current structure:
+
+```text
+services/
+└── market_data_service/
+    ├── alembic.ini
+    └── alembic/
+        ├── env.py
+        ├── README
+        ├── script.py.mako
+        └── versions/
+```
+
+This is important because each microservice should eventually manage its own schema and migrations.
+
+Do not create a global root Alembic system.
+
+---
+
+# 27. Migration Process
+
+Alembic is configured to use the Market Data model metadata.
+
+The migration environment loads database configuration from `.env`.
+
+The current database has:
+
+```text
+alembic_version
+market_data
+```
+
+The current migration created the Market Data table.
+
+Migration commands must use:
+
+```powershell
+python -m alembic -c .\services\market_data_service\alembic.ini ...
+```
+
+because the standalone `alembic.exe` launcher is blocked on this machine.
+
+For example:
+
+```powershell
+python -m alembic -c .\services\market_data_service\alembic.ini upgrade head
+```
+
+---
+
+# 28. Repository
+
+Location:
+
+```text
+services/market_data_service/app/repositories/market_data_repository.py
+```
+
+Purpose:
+
+Keep database persistence logic separate from:
+
+* API routes
+* provider code
+* processing
+* normalization
+
+The current repository supports bulk saving.
+
+Its important behavior is:
+
+```text
+records
+ ↓
+PostgreSQL INSERT
+ ↓
+if symbol + datetime already exists
+ ↓
+UPDATE existing row
+```
+
+The PostgreSQL implementation uses:
+
+```python
+insert(MarketData)
+```
+
+and:
+
+```python
+on_conflict_do_update(...)
+```
+
+The update includes:
+
+```text
+open
+high
+low
+close
+volume
+interval
+price_change
+price_change_percent
+trading_range
+average_volume
+average_price
+relative_volume
+buying_pressure
+selling_pressure
+momentum
+volatility
+```
+
+Therefore an existing market-data record is fully updated with newly processed information.
+
+---
+
+# 29. Current API Ingestion Flow
+
+Location:
+
+```text
+services/market_data_service/app/api/routes/market_data.py
+```
+
+Current endpoint:
+
+```text
+GET /market-data/
+```
+
+Parameters include:
+
+```text
+symbols
+period
+interval
+```
+
+Example conceptually:
+
+```text
+/market-data/?symbols=AAPL,TSLA&period=1d&interval=1h
+```
+
+The route:
+
+1. Splits the symbol string.
+2. Removes whitespace.
+3. Converts symbols to uppercase.
+4. Creates the Yahoo client.
+5. Creates the Yahoo mapper.
+6. Creates the BulkIngestor.
+7. Creates the BatchManager.
+8. Retrieves data in batches.
+9. Combines the batches.
+10. Creates a pandas DataFrame.
+11. Runs MarketDataProcessor.
+12. Runs MarketDataNormalizer.
+13. Creates a database session.
+14. Creates MarketDataRepository.
+15. Saves records.
+16. Closes the database session.
+17. Returns the normalized records.
+
+Conceptually:
+
+```text
+HTTP request
+     ↓
+Market Data API
+     ↓
+BatchManager
+     ↓
+BulkIngestor
+     ↓
+Yahoo
+     ↓
+Mapper
+     ↓
+DataFrame
+     ↓
+Processor
+     ↓
+Normalizer
+     ↓
+Repository
+     ↓
+PostgreSQL
+     ↓
+API response
+```
+
+---
+
+# 30. Important API Design Rule
+
+The API route should not manually create:
+
+```python
+data["interval"] = interval
+```
+
+The interval should come from the mapper.
+
+The Mapper creates the normalized record structure.
+
+This keeps provider mapping responsible for the source-to-internal-data transformation.
+
+---
+
+# 31. Current End-to-End Test
+
+The Market Data Service has already been tested end-to-end using AAPL and TSLA.
+
+A successful request returned records containing:
+
+```text
+symbol
+datetime
+interval
+open
+high
+low
+close
+volume
+price_change
+price_change_percent
+trading_range
+average_volume
+average_price
+relative_volume
+buying_pressure
+selling_pressure
+momentum
+volatility
+```
+
+The data was also confirmed in PostgreSQL.
+
+For the test request:
+
+```text
+AAPL
+TSLA
+```
+
+with:
+
+```text
+period=1d
+interval=1h
+```
+
+the database contained:
+
+```text
+7 AAPL records
+7 TSLA records
+```
+
+for:
+
+```text
+14 total records
+```
+
+---
+
+# 32. Upsert Verification
+
+The same API request was executed again.
+
+Before the repeated request:
+
+```text
+14 records
+```
+
+After the repeated request, the count remained:
+
+```text
+14
+```
+
+This verifies the intended behavior:
+
+```text
+same symbol
++
+same datetime
+=
+same database record
+```
+
+rather than:
+
+```text
+same symbol
++
+same datetime
+=
+new duplicate record
+```
+
+This is a critical successful test.
+
+---
+
+# 33. Testing Status
+
+The project has tests for:
+
+* configuration
+* database connection
+* Yahoo mapping
+* bulk ingestion
+* batch management
+* market-data processing
+* normalization
+* repository behavior
+
+The Market Data tests were previously brought to a passing state after fixing the test mapper signature.
+
+A repository test was also run after implementing the PostgreSQL upsert behavior and was reported as successful.
+
+The full test suite should still be run again after the current retrieval work is complete.
+
+Use:
+
+```powershell
+python -m pytest -v
+```
+
+Do not assume tests pass after a code change without running them.
+
+---
+
+# 34. Current Market Data Service Status
+
+The following parts are working:
+
+```text
+Yahoo provider                  COMPLETE
+Yahoo mapper                   COMPLETE
+Bulk ingestion                  COMPLETE
+Batch management                COMPLETE
+Market data processing          COMPLETE
+Normalization                  COMPLETE
+Database configuration          COMPLETE
+SQLAlchemy model                COMPLETE
+Alembic migration               COMPLETE
+PostgreSQL table                COMPLETE
+Repository save/upsert          COMPLETE
+API ingestion                   COMPLETE
+End-to-end database storage     COMPLETE
+Upsert verification             COMPLETE
+```
+
+The remaining core piece is:
+
+```text
+Database retrieval
+```
+
+and then:
+
+```text
+Retrieval API endpoint
+```
+
+After retrieval and retrieval tests are complete, the Market Data Service can be treated as **v1 complete**.
+
+---
+
+# 35. Current Next Task
+
+The immediate next task is NOT to redesign the Market Data Service.
+
+The next task is:
+
+## Add database retrieval
+
+The desired flow is:
+
+```text
+API request
+    ↓
+Market Data Service
+    ↓
+MarketDataRepository
+    ↓
+PostgreSQL
+    ↓
+stored market data
+    ↓
+API response
+```
+
+The retrieval functionality belongs inside the Market Data Service because the Market Data Service owns the market-data database.
+
+The repository should contain the database query logic.
+
+The API route should expose that functionality.
+
+Other microservices should eventually call the Market Data Service API instead of directly accessing its database.
+
+---
+
+# 36. Retrieval Architecture
+
+The desired separation is:
+
+```text
+API Layer
+    ↓
+Repository Layer
+    ↓
+Database
+```
+
+The API route should not contain raw SQL.
+
+The repository should handle database queries.
+
+For example, conceptually:
+
+```text
+GET /market-data/stored?symbol=AAPL
+             ↓
+Market Data API
+             ↓
+MarketDataRepository
+             ↓
+SELECT ...
+             ↓
+PostgreSQL
+```
+
+The exact endpoint design should be decided during implementation.
+
+Do not create unnecessary layers just for the sake of having more files.
+
+---
+
+# 37. Retrieval Requirements
+
+At minimum, retrieval should eventually support requesting stored market data by:
+
+```text
+symbol
+```
+
+It should also be possible to support date/time boundaries later, such as:
+
+```text
+symbol
+start_datetime
+end_datetime
+```
+
+Potentially:
+
+```text
+interval
+limit
+```
+
+may also be useful.
+
+However, do not add every possible parameter immediately.
+
+Start with the smallest useful retrieval implementation.
+
+---
+
+# 38. Retrieval Should Respect Database Ownership
+
+The future Indicator Service might need AAPL data.
+
+It should NOT do:
+
+```text
+Indicator Service
+    ↓
+Market Data PostgreSQL
+```
+
+Instead:
+
+```text
+Indicator Service
+    ↓
+Market Data Service API
+    ↓
+Market Data Repository
+    ↓
+Market Data PostgreSQL
+```
+
+This preserves the microservice boundary.
+
+---
+
+# 39. Future Security Service Integration
+
+Currently Market Data uses:
+
+```text
+symbol
+```
+
+as the identifier.
+
+Eventually:
+
+```text
+Security Service
+```
+
+will become responsible for security identity.
+
+A future architecture may look like:
+
+```text
+Security Service
+
+security_id
+symbol
+company_name
+exchange
+sector
+industry
+```
+
+Then:
+
+```text
+Market Data Service
+       ↓
+security_id
+       +
+datetime
+       ↓
+market data
+```
+
+But this change should happen only when the Security Service architecture is ready.
+
+Do not prematurely change the current Market Data database to require a `security_id`.
+
+The current requirement is to finish Market Data with `symbol`.
+
+---
+
+# 40. Important Design Philosophy
+
+Do not add complexity simply because Zenith is called a distributed system.
+
+The goal is:
+
+```text
+clear boundaries
++
+independent responsibilities
++
+scalability
++
+maintainability
+```
+
+Not:
+
+```text
+maximum number of files
++
+maximum number of services
++
+maximum abstraction
+```
+
+A file should have a meaningful responsibility.
+
+Avoid creating tiny files that merely move a few lines of code around without providing architectural value.
+
+---
+
+# 41. Current Data Pipeline
+
+The complete current pipeline should be understood as:
+
+```text
+                    EXTERNAL WORLD
+                         │
+                         ▼
+                    Yahoo/yfinance
+                         │
+                         ▼
+                  ┌───────────────┐
+                  │ YahooClient   │
+                  └───────┬───────┘
+                          │
+                          ▼
+                  ┌───────────────┐
+                  │ YahooMapper   │
+                  └───────┬───────┘
+                          │
+                          ▼
+                  ┌───────────────┐
+                  │ BulkIngestor  │
+                  └───────┬───────┘
+                          │
+                          ▼
+                  ┌───────────────┐
+                  │ BatchManager  │
+                  └───────┬───────┘
+                          │
+                          ▼
+                   pandas DataFrame
+                          │
+                          ▼
+                ┌────────────────────┐
+                │ MarketDataProcessor│
+                └─────────┬──────────┘
+                          │
+                          ▼
+                ┌────────────────────┐
+                │ MarketDataNormalizer│
+                └─────────┬──────────┘
+                          │
+                          ▼
+                ┌────────────────────┐
+                │ MarketDataRepository│
+                └─────────┬──────────┘
+                          │
+                          ▼
+                    PostgreSQL
+                          │
+                          ▼
+                    market_data
+```
+
+Retrieval adds:
+
+```text
+Client
+  ↓
+Market Data API
+  ↓
+MarketDataRepository
+  ↓
+PostgreSQL
+  ↓
+Market Data API response
+```
+
+---
+
+# 42. What the Next AI Must NOT Do
+
+Do not:
+
+1. Bring Alpha Vantage back.
+2. Replace Yahoo without a requirement.
+3. Redesign the entire Market Data Service.
+4. Create a root-level Alembic system.
+5. Make the API Gateway directly access PostgreSQL.
+6. Make another service directly import Market Data repository classes.
+7. Add screening logic to Market Data.
+8. Add LLM analysis to Market Data.
+9. Build the Security Service before finishing the current Market Data task unless explicitly requested.
+10. Change the unique identity from `symbol + datetime`.
+11. Add `interval` to the unique constraint.
+12. Hardcode database credentials.
+13. Create unnecessary abstraction layers.
+14. Replace working files without inspecting them first.
+15. Assume a test passes without running it.
+16. Give large batches of unrelated commands when one small step is enough.
+
+---
+
+# 43. What the Next AI SHOULD Do
+
+When starting the next service:
+
+1. Read this document completely.
+2. Confirm the current architecture mentally before coding.
+3. Identify the responsibility of the new service.
+4. Keep it independent from other services' internal code.
+5. Define its own database ownership if it needs persistent data.
+6. Give the service its own migration system if it owns database schema.
+7. Build one layer at a time.
+8. Test each layer.
+9. Explain new technologies before using them.
+10. Inspect existing files before changing them.
+11. Keep the implementation practical.
+12. Preserve the existing Market Data Service boundary.
+
+---
+
+# 44. Coding Style
+
+Use readable Python.
+
+Prefer:
+
+```python
+class MarketDataRepository:
+
+    def __init__(self, session: Session):
+        self.session = session
+```
+
+over unnecessary abstraction.
+
+Functions should have clear responsibilities.
+
+Small comments inside functions are preferred.
+
+Comments should explain purpose, not obvious Python syntax.
+
+Avoid excessive comments.
+
+Avoid giant functions when responsibilities are genuinely different.
+
+But also avoid splitting code into meaningless micro-files.
+
+---
+
+# 45. Testing Philosophy
+
+Every meaningful layer should have tests.
+
+For a new service, generally build and test:
+
+```text
+configuration
+database connection
+model
+repository
+business logic
+API
+```
+
+where applicable.
+
+Use:
+
+```powershell
+python -m pytest -v
+```
+
+Tests should verify behavior, not just that imports work.
+
+For database code, test important behaviors such as:
+
+```text
+insert
+retrieve
+update
+duplicate handling
+```
+
+when applicable.
+
+---
+
+# 46. Expected Future Architecture
+
+The long-term architecture is roughly:
+
+```text
+                         Client
+                           │
+                           ▼
+                    ┌─────────────┐
+                    │ API Gateway │
+                    └──────┬──────┘
+                           │
+          ┌────────────────┼─────────────────┐
+          │                │                 │
+          ▼                ▼                 ▼
+ ┌────────────────┐ ┌───────────────┐ ┌───────────────┐
+ │ Market Data    │ │ Security      │ │ Indicator     │
+ │ Service        │ │ Service       │ │ Service       │
+ └───────┬────────┘ └──────┬────────┘ └───────┬───────┘
+         │                 │                  │
+         ▼                 ▼                  ▼
+  Market Data DB     Security DB        Indicator DB
+         │
+         │
+         └───────────────┐
+                         │
+                         ▼
+                 ┌───────────────┐
+                 │ Screening     │
+                 │ Service       │
+                 └───────┬───────┘
+                         │
+                         ▼
+                 ┌───────────────┐
+                 │ Analysis      │
+                 │ Service       │
+                 └───────────────┘
+```
+
+Actual communication mechanisms may eventually include:
+
+```text
+REST/HTTP
+events
+message queues
+background jobs
+```
+
+The exact choice should be made when the system requires it rather than prematurely.
+
+---
+
+# 47. Development Order
+
+The intended development sequence is:
+
+```text
+Market Data Service
+        ↓
+Security Service
+        ↓
+Indicator Service
+        ↓
+Screening Service
+        ↓
+Analysis Service
+        ↓
+Distributed/background infrastructure
+        ↓
+Production deployment
+        ↓
+CI/CD
+```
+
+However, the developer may change the order if needed.
+
+The Market Data Service is currently near completion.
+
+The immediate task is its retrieval functionality.
+
+After that, the next major service can be started.
+
+---
+
+# 48. CI/CD
+
+CI/CD is planned for the Zenith Git repository.
+
+However, the developer explicitly decided:
+
+**CI/CD later.**
+
+Do not start CI/CD unless explicitly requested.
+
+---
+
+# 49. Current Git State
+
+Repository:
+
+```text
+Zenith
+```
+
+Remote:
+
+```text
+origin
+```
+
+Branch:
+
+```text
+minor
+```
+
+The project has already been pushed to GitHub.
+
+The initial commit was renamed to:
+
+```text
+Initial Zenith project
+```
+
+Do not confuse the old project names:
+
+```text
+InvestIQ
+StockScreener
+```
+
+with the current project name:
+
+```text
+Zenith
+```
+
+---
+
+# 50. Immediate Continuation Point
+
+The exact point where development should continue is:
+
+## Market Data database retrieval
+
+The current MarketDataRepository already supports saving/upserting.
+
+The next work should be to inspect the existing repository file and then add retrieval functionality.
+
+Do NOT immediately replace the repository.
+
+First inspect it.
+
+Command:
+
+```powershell
+Get-Content .\services\market_data_service\app\repositories\market_data_repository.py
+```
+
+Then determine the smallest retrieval method needed.
+
+After that:
+
+```text
+Repository retrieval
+        ↓
+repository test
+        ↓
+API retrieval endpoint
+        ↓
+API test
+        ↓
+full Market Data test suite
+```
+
+Once those pass, the Market Data Service v1 can be considered complete.
+
+---
+
+# 51. Final Architectural Summary
+
+The core Zenith philosophy is:
+
+```text
+Each service owns a business domain.
+
+Each service owns its internal implementation.
+
+Each service owns its database when persistent data is required.
+
+Services communicate through defined interfaces.
+
+Services do not import each other's internal implementation.
+
+Market Data owns market data.
+
+Security owns security identity.
+
+Indicator owns technical indicator logic.
+
+Screening owns screening logic.
+
+Analysis owns higher-level analysis.
+
+API Gateway routes requests.
+
+PostgreSQL stores persistent data.
+
+Alembic manages service-owned schema migrations.
+
+Yahoo currently provides external market data.
+
+The system is designed for bulk processing and future scale.
+```
+
+The most important current database rule is:
+
+```text
+Market Data identity = symbol + datetime
+```
+
+not:
+
+```text
+symbol + datetime + interval
+```
+
+The most important current service-boundary rule is:
+
+```text
+Other services request Market Data through the Market Data Service.
+
+They do not directly access the Market Data database.
+```
+
+The immediate next implementation task is:
+
+```text
+Market Data Service
+    ↓
+Database retrieval
+    ↓
+Retrieval API
+    ↓
+Tests
+```
+
+After that, development can move to the next microservice.

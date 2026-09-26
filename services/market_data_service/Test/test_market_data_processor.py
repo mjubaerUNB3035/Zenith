@@ -7,24 +7,30 @@ from services.market_data_service.app.processing.market_data_processor import (
 
 def test_market_data_processor():
     data = pd.DataFrame({
-        "Open": [100, 102, 104, 103, 105],
-        "High": [103, 105, 107, 106, 108],
-        "Low": [99, 101, 102, 101, 103],
-        "Close": [102, 104, 106, 105, 107],
-        "Volume": [1000, 1200, 1500, 1300, 1600],
+        "symbol": ["AAPL", "AAPL", "AAPL", "AAPL", "AAPL"],
+        "open": [100, 102, 104, 103, 105],
+        "high": [103, 105, 107, 106, 108],
+        "low": [99, 101, 102, 101, 103],
+        "close": [102, 104, 106, 105, 107],
+        "volume": [1000, 1200, 1500, 1300, 1600],
+        "datetime": pd.date_range(
+            "2026-01-01",
+            periods=5,
+            freq="h",
+        ),
     })
 
     processor = MarketDataProcessor()
 
     result = processor.process(data)
 
-    assert "PriceChange" in result.columns
-    assert "PriceChangePercent" in result.columns
-    assert "TradingRange" in result.columns
-    assert "AverageVolume" in result.columns
-    assert "AveragePrice" in result.columns
-    assert "RelativeVolume" in result.columns
-    assert "BuyingPressure" in result.columns
-    assert "SellingPressure" in result.columns
-    assert "Momentum" in result.columns
-    assert "Volatility" in result.columns
+    assert "price_change" in result.columns
+    assert "price_change_percent" in result.columns
+    assert "trading_range" in result.columns
+    assert "average_volume" in result.columns
+    assert "average_price" in result.columns
+    assert "relative_volume" in result.columns
+    assert "buying_pressure" in result.columns
+    assert "selling_pressure" in result.columns
+    assert "momentum" in result.columns
+    assert "volatility" in result.columns

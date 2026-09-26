@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+yfinance
+pandas
+numpy
+pydantic
+pydantic-settings
+python-dotenv
+pytest
+httpx
+sqlalchemy
+psycopg[binary]
+alembic

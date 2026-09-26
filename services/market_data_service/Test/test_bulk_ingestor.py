@@ -59,6 +59,9 @@ def test_bulk_ingestor_fetches_multiple_symbols():
     assert result[0]["symbol"] == "AAPL"
     assert result[1]["symbol"] == "MSFT"
     assert result[2]["symbol"] == "NVDA"
+    assert result[0]["interval"] == "1h"
+    assert result[1]["interval"] == "1h"
+    assert result[2]["interval"] == "1h"
 
 
 def test_bulk_ingestor_rejects_empty_symbols():
