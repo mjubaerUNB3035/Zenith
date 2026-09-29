@@ -1,6 +1,5 @@
 from unittest.mock import patch
-
-from services.market_data_service.app.providers.yahoo.client import YahooClient
+from shared.providers.yahoo.client import YahooClient
 
 
 def test_yahoo_client_requests_multiple_symbols():
@@ -10,7 +9,7 @@ def test_yahoo_client_requests_multiple_symbols():
     client = YahooClient()
 
     with patch(
-        "services.market_data_service.app.providers.yahoo.client.yf.download"
+        "shared.providers.yahoo.client.yf.download"
     ) as mock_download:
 
         mock_download.return_value = {"AAPL": "data", "MSFT": "data"}

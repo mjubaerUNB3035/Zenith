@@ -36,8 +36,8 @@
     <Compile Include="services\market_data_service\app\models\__init__.py" />
     <Compile Include="services\market_data_service\app\normalization\market_data_normalizer.py" />
     <Compile Include="services\market_data_service\app\processing\market_data_processor.py" />
-    <Compile Include="services\market_data_service\app\providers\yahoo\client.py" />
-    <Compile Include="services\market_data_service\app\providers\yahoo\mapper.py" />
+    <Compile Include="shared\providers\yahoo\client.py" />
+    <Compile Include="shared\providers\yahoo\mapper.py" />
     <Compile Include="services\market_data_service\app\repositories\market_data_repository.py" />
     <Compile Include="services\market_data_service\app\repositories\__init__.py" />
     <Compile Include="services\market_data_service\app\__init__.py" />
@@ -51,9 +51,23 @@
     <Compile Include="services\market_data_service\Test\test_market_data_processor.py" />
     <Compile Include="services\market_data_service\Test\test_yahoo_client.py" />
     <Compile Include="services\market_data_service\Test\test_yahoo_mapper.py" />
+    <Compile Include="services\security_service\alembic\env.py" />
+    <Compile Include="services\security_service\app\api\routes\security_routes.py" />
+    <Compile Include="services\security_service\app\api\schemas\security_schema.py" />
+    <Compile Include="services\security_service\app\database\database.py" />
+    <Compile Include="services\security_service\app\database\__init__.py" />
+    <Compile Include="services\security_service\app\main.py" />
+    <Compile Include="services\security_service\app\models\security_model.py" />
+    <Compile Include="services\security_service\app\models\__init__.py" />
+    <Compile Include="services\security_service\app\repositories\security_repository.py" />
+    <Compile Include="services\security_service\app\repositories\__init__.py" />
+    <Compile Include="services\security_service\test\test_database.py" />
+    <Compile Include="services\security_service\test\test_security_repository.py" />
+    <Compile Include="shared\providers\yahoo\__init__.py" />
     <Compile Include="__init__.py" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="shared\" />
     <Folder Include="services\" />
     <Folder Include="services\api_gateway\" />
     <Folder Include="services\api_gateway\app\" />
@@ -69,15 +83,28 @@
     <Folder Include="services\market_data_service\app\repositories\" />
     <Folder Include="services\market_data_service\app\normalization\" />
     <Folder Include="services\market_data_service\app\processing\" />
-    <Folder Include="services\market_data_service\app\providers\" />
-    <Folder Include="services\market_data_service\app\providers\yahoo\" />
+    <Folder Include="shared\providers\" />
+    <Folder Include="shared\providers\yahoo\" />
     <Folder Include="services\market_data_service\Test\" />
+    <Folder Include="services\security_service\" />
+    <Folder Include="services\security_service\app\" />
+    <Folder Include="services\security_service\alembic\versions\" />
+    <Folder Include="services\security_service\app\api\" />
+    <Folder Include="services\security_service\app\api\schemas\" />
+    <Folder Include="services\security_service\app\api\routes\" />
+    <Folder Include="services\security_service\app\database\" />
+    <Folder Include="services\security_service\app\models\" />
+    <Folder Include="services\security_service\alembic\" />
+    <Folder Include="services\security_service\app\repositories\" />
+    <Folder Include="services\security_service\test\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="services\market_data_service\alembic.ini" />
     <Content Include="services\market_data_service\alembic\README" />
     <Content Include="services\market_data_service\alembic\script.py.mako" />
     <Content Include="services\market_data_service\Test\test_market_data_model.py" />
+    <Content Include="services\security_service\alembic.ini" />
+    <Content Include="services\security_service\app\database\script.py.mako" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

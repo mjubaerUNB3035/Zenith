@@ -1,6 +1,5 @@
 import pandas as pd
-
-from services.market_data_service.app.providers.yahoo.mapper import YahooMapper
+from shared.providers.yahoo.mapper import YahooMapper
 
 
 def test_map_market_data():

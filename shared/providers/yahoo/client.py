@@ -20,3 +20,27 @@ class YahooClient:
             auto_adjust=False,
             progress=False,
         )
+
+    def get_security_info(self, symbol: str):
+        # Gets company/security information for one symbol from Yahoo Finance.
+        symbol = symbol.strip().upper()
+
+        if not symbol:
+            raise ValueError("A symbol is required.")
+
+        ticker = yf.Ticker(symbol)
+
+        info = ticker.info
+
+        if not info:
+            return None
+
+        return {
+            "symbol": symbol,
+            "company_name": info.get("longName") or info.get("shortName"),
+            "exchange": info.get("exchange"),
+            "sector": info.get("sector"),
+            "industry": info.get("industry"),
+            "country": info.get("country"),
+            "active": True,
+        }

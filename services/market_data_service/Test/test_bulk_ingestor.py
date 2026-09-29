@@ -1,7 +1,6 @@
 import pandas as pd
-
 from services.market_data_service.app.ingestion.bulk_ingestor import BulkIngestor
-from services.market_data_service.app.providers.yahoo.mapper import YahooMapper
+from shared.providers.yahoo.mapper import YahooMapper
 
 
 class FakeProvider:
