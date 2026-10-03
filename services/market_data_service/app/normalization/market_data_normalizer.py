@@ -79,6 +79,33 @@ class MarketDataNormalizer:
 
         return data
 
+    def remove_incomplete_market_data(
+        self,
+        data: pd.DataFrame,
+    ) -> pd.DataFrame:
+        # Remove market-data records missing required OHLC values.
+        data = data.copy()
+
+        required_columns = [
+            "open",
+            "high",
+            "low",
+            "close",
+        ]
+
+        available_columns = [
+            column
+            for column in required_columns
+            if column in data.columns
+        ]
+
+        if available_columns:
+            data = data.dropna(
+                subset=available_columns
+            )
+
+        return data
+
     def normalize_order(self, data: pd.DataFrame) -> pd.DataFrame:
         # Sort data by symbol and datetime.
         data = data.copy()
@@ -102,6 +129,7 @@ class MarketDataNormalizer:
         data = self.normalize_datetime(data)
         data = self.normalize_numeric(data)
         data = self.normalize_invalid_values(data)
+        data = self.remove_incomplete_market_data(data)
         data = self.normalize_missing_values(data)
         data = self.normalize_order(data)
 

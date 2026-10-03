@@ -24,12 +24,18 @@ class YahooMapper:
                 symbol_data = symbol_data.reset_index()
 
                 for _, row in symbol_data.iterrows():
+
+                    datetime_column = (
+                        "Datetime"
+                        if "Datetime" in symbol_data.columns
+                        else "Date"
+                    )
                     # Converts one Yahoo price row into one standard InvestIQ record.
                     # Values come directly from the selected Yahoo DataFrame row.
                     records.append(
                         {
                             "symbol": symbol,
-                            "datetime": row["Datetime"],
+                            "datetime": row[datetime_column],
                             "interval": interval,
                             "open": row["Open"],
                             "high": row["High"],
@@ -45,12 +51,18 @@ class YahooMapper:
             # a non-MultiIndex DataFrame.
             data = data.reset_index()
 
+            datetime_column = (
+                "Datetime"
+                if "Datetime" in data.columns
+                else "Date"
+            )
+
             for _, row in data.iterrows():
                 # Converts one single-symbol Yahoo row into a standard record.
                 # The OHLCV values come from the current Yahoo DataFrame row.
                 records.append(
                     {
-                        "datetime": row["Datetime"],
+                        "datetime": row[datetime_column],
                         "interval": interval,
                         "open": row["Open"],
                         "high": row["High"],

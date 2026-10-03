@@ -1,6 +1,6 @@
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from services.market_data_service.app.models.market_data_model import MarketData
 
@@ -48,13 +48,80 @@ class MarketDataRepository:
         self.session.execute(statement)
         self.session.commit()
 
-    def get_by_symbol( self, symbol: str) -> list[MarketData]:
-        
-        # Retrieve all stored records for the symbol.
+
+
+    def get_by_symbol(
+        self,
+        symbol: str,
+        interval: str | None = None,
+        limit: int | None = None,
+    ) -> list[MarketData]:
+
+        # Retrieve stored records for the symbol.
         statement = (
             select(MarketData)
             .where(MarketData.symbol == symbol)
-            .order_by(MarketData.datetime)
         )
 
-        return self.session.execute(statement).scalars().all()
+        # Filter records by interval when one is provided.
+        if interval is not None:
+            statement = statement.where(
+                MarketData.interval == interval
+            )
+
+        statement = statement.order_by(
+            MarketData.datetime.desc()
+        )
+
+        if limit is not None:
+            statement = statement.limit(limit)
+
+        records = self.session.execute(
+            statement
+        ).scalars().all()
+
+        return list(reversed(records))
+
+    def count_by_symbol(
+        self,
+        symbol: str,
+    ) -> int:
+
+        # Count how many records exist for the symbol.
+        statement = (
+            select(func.count())
+            .select_from(MarketData)
+            .where(MarketData.symbol == symbol)
+        )
+
+        return self.session.execute(statement).scalar_one()
+
+    # Retrieve the latest market-data records when indicator triggers.
+    def get_latest_market_data_for_indicator(
+        self,
+        symbol: str,
+        interval: str,
+        limit: int,
+    ) -> list[MarketData]:
+
+        # Retrieve the latest market-data records
+        # for the requested symbol and interval.
+
+        statement = (
+            select(MarketData)
+            .where(
+                MarketData.symbol == symbol,
+                MarketData.interval == interval,
+            )
+            .order_by(MarketData.datetime.desc())
+            .limit(limit)
+        )
+
+        records = self.session.execute(
+            statement
+        ).scalars().all()
+
+        # Reverse the records so the oldest requested candle
+        # comes first and the newest candle comes last.
+
+        return list(reversed(records))

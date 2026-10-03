@@ -24,6 +24,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="services\market_data_service\alembic\env.py" />
+    <Compile Include="services\market_data_service\app\clients\security_client.py" />
     <Compile Include="services\market_data_service\app\config.py" />
     <Compile Include="services\api_gateway\app\main.py" />
     <Compile Include="services\market_data_service\app\api\routes\market_data.py" />
@@ -36,6 +37,13 @@
     <Compile Include="services\market_data_service\app\models\__init__.py" />
     <Compile Include="services\market_data_service\app\normalization\market_data_normalizer.py" />
     <Compile Include="services\market_data_service\app\processing\market_data_processor.py" />
+    <Compile Include="services\market_data_service\Test\test_security_client.py" />
+    <Compile Include="services\market_data_service\Test\__init__.py" />
+    <Compile Include="services\security_service\app\ingestion\security_ingestor.py" />
+    <Compile Include="services\security_service\test\test_security_api.py" />
+    <Compile Include="services\security_service\test\test_security_ingestor.py" />
+    <Compile Include="services\security_service\test\test_yahoo_client.py" />
+    <Compile Include="services\security_service\test\__init__.py" />
     <Compile Include="shared\providers\yahoo\client.py" />
     <Compile Include="shared\providers\yahoo\mapper.py" />
     <Compile Include="services\market_data_service\app\repositories\market_data_repository.py" />
@@ -67,6 +75,8 @@
     <Compile Include="__init__.py" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="services\market_data_service\app\clients\" />
+    <Folder Include="services\security_service\app\ingestion\" />
     <Folder Include="shared\" />
     <Folder Include="services\" />
     <Folder Include="services\api_gateway\" />

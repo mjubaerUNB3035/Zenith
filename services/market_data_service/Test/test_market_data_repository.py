@@ -51,7 +51,14 @@ def test_get_by_symbol():
 
         first_record = MarketData(
             symbol="TEST",
-            datetime=datetime(2026, 9, 25, 10, 30, tzinfo=timezone.utc),
+            datetime=datetime(
+                2026,
+                9,
+                25,
+                10,
+                30,
+                tzinfo=timezone.utc,
+            ),
             interval="1h",
             open=100.0,
             high=105.0,
@@ -62,7 +69,14 @@ def test_get_by_symbol():
 
         second_record = MarketData(
             symbol="TEST",
-            datetime=datetime(2026, 9, 25, 11, 30, tzinfo=timezone.utc),
+            datetime=datetime(
+                2026,
+                9,
+                25,
+                11,
+                30,
+                tzinfo=timezone.utc,
+            ),
             interval="1h",
             open=103.0,
             high=107.0,
@@ -85,6 +99,66 @@ def test_get_by_symbol():
         assert records[0].datetime < records[1].datetime
         assert records[0].close == 103.0
         assert records[1].close == 106.0
+
+        session.delete(first_record)
+        session.delete(second_record)
+        session.commit()
+
+    finally:
+        session.close()
+
+
+def test_count_by_symbol():
+    session = SessionLocal()
+
+    try:
+        repository = MarketDataRepository(session)
+
+        first_record = MarketData(
+            symbol="TEST",
+            datetime=datetime(
+                2026,
+                9,
+                25,
+                12,
+                30,
+                tzinfo=timezone.utc,
+            ),
+            interval="1h",
+            open=100.0,
+            high=105.0,
+            low=99.0,
+            close=103.0,
+            volume=1000000,
+        )
+
+        second_record = MarketData(
+            symbol="TEST",
+            datetime=datetime(
+                2026,
+                9,
+                25,
+                13,
+                30,
+                tzinfo=timezone.utc,
+            ),
+            interval="1h",
+            open=103.0,
+            high=107.0,
+            low=102.0,
+            close=106.0,
+            volume=1200000,
+        )
+
+        session.add_all([
+            first_record,
+            second_record,
+        ])
+        session.commit()
+
+        count = repository.count_by_symbol("TEST")
+
+        assert count == 2
 
         session.delete(first_record)
         session.delete(second_record)
