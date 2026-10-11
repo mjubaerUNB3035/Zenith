@@ -39,6 +39,20 @@
     <Compile Include="services\market_data_service\app\processing\market_data_processor.py" />
     <Compile Include="services\market_data_service\Test\test_security_client.py" />
     <Compile Include="services\market_data_service\Test\__init__.py" />
+    <Compile Include="services\screening_service\app\api\schemas\screening_schema.py" />
+    <Compile Include="services\screening_service\app\clients\indicator_client.py" />
+    <Compile Include="services\screening_service\app\clients\__init__.py" />
+    <Compile Include="services\screening_service\app\main.py" />
+    <Compile Include="services\screening_service\app\screening\basic_screening.py" />
+    <Compile Include="services\screening_service\app\screening\momentum_screening.py" />
+    <Compile Include="services\screening_service\app\screening\trend_screening.py" />
+    <Compile Include="services\screening_service\app\screening\volume_screening.py" />
+    <Compile Include="services\screening_service\app\__init__.py" />
+    <Compile Include="services\screening_service\test\test_basic_screening.py" />
+    <Compile Include="services\screening_service\test\test_indicator_client.py" />
+    <Compile Include="services\screening_service\test\test_momentum_screening.py" />
+    <Compile Include="services\screening_service\test\test_screening_schema.py" />
+    <Compile Include="services\screening_service\test\test_trend_screening.py" />
     <Compile Include="services\security_service\app\ingestion\security_ingestor.py" />
     <Compile Include="services\security_service\test\test_security_api.py" />
     <Compile Include="services\security_service\test\test_security_ingestor.py" />
@@ -76,6 +90,16 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="services\market_data_service\app\clients\" />
+    <Folder Include="services\screening_service\" />
+    <Folder Include="services\screening_service\app\api\" />
+    <Folder Include="services\screening_service\app\api\schemas\" />
+    <Folder Include="services\screening_service\app\clients\" />
+    <Folder Include="services\screening_service\app\configuration\" />
+    <Folder Include="services\screening_service\app\engine\" />
+    <Folder Include="services\screening_service\app\" />
+    <Folder Include="services\screening_service\app\results\" />
+    <Folder Include="services\screening_service\app\screening\" />
+    <Folder Include="services\screening_service\test\" />
     <Folder Include="services\security_service\app\ingestion\" />
     <Folder Include="shared\" />
     <Folder Include="services\" />
